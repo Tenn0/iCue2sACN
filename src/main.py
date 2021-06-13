@@ -10,7 +10,7 @@ sdk = CueSdk()
 sdk.connect()
 sdk.set_layer_priority(128)
 
-
+##vars:
 ##device-index
 device1 = 1  ##keyboard
 device2 = 0  ##mouse
