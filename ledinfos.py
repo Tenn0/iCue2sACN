@@ -5,18 +5,13 @@ sdk = CueSdk()
 sdk.connect()
 
 
-device_count = sdk.get_device_count() - 1
+device_count = sdk.get_device_count()
 
-i = 0
-while i < device_count:
-    info_Led = sdk.get_led_positions_by_device_index(i)
-    info_device = sdk.get_device_info(i)
-    print(i)
+for device_index in range(device_count):
+    info_Led = sdk.get_led_positions_by_device_index(device_index)
+    info_device = sdk.get_device_info(device_index)
+    print(device_index)
     print(info_device)
     print(info_Led)
     for led in info_Led.keys():
         print(led.value)
-    i += 1
-    if i == device_count:
-        break
-
