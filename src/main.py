@@ -17,7 +17,7 @@ def setup_receiver(device_index):
         for x, led_id in enumerate(range(len(data)//3)):
             led_buffer[led_id] = (data[x], data[x+1], data[x+2])
 
-        sdk.set_led_colors_buffer_by_device_index(device2, led_buffer)
+        sdk.set_led_colors_buffer_by_device_index(device_index, led_buffer)
         sdk.set_led_colors_flush_buffer()
 
     receiver.register_listener("universe", callback, universe=universe)
