@@ -12,7 +12,6 @@ def setup_receiver(device_index):
 
     def callback(packet):
         data = packet.dmxData
-        print(f"{name} received DMX data: {data}")
 
         for x, led_id in enumerate(led_ids):
             led_buffer[led_id] = (data[3*x], data[3*x+1], data[3*x+2])
