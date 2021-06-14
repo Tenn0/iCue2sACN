@@ -15,7 +15,7 @@ def setup_receiver(device_index):
         print(f"{name} received DMX data: {data}")
 
         for x, led_id in enumerate(led_ids):
-            led_buffer[led_id] = (data[x], data[x+1], data[x+2])
+            led_buffer[led_id] = (data[3*x], data[3*x+1], data[3*x+2])
 
         sdk.set_led_colors_buffer_by_device_index(device_index, led_buffer)
         sdk.set_led_colors_flush_buffer()
