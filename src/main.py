@@ -51,6 +51,7 @@ def setup_receiver(device_index):
 
     def callback(packet):
         data = packet.dmxData
+        print(f"{led_info} received DMX data: {data}")
 
         for x, led_id in enumerate(range(len(data)//3)):
             led_buffer[led_id] = (data[x], data[x+1], data[x+2])
@@ -60,7 +61,7 @@ def setup_receiver(device_index):
 
     receiver.register_listener("universe", callback, universe=universe)
 
-    print(f"created sacn receiver on universe {universe}, with {len(led_ids)} leds")
+    print(f"Created sacn receiver for {led_info} on universe {universe}, with {len(led_ids)} leds")
 
 
 device_count = sdk.get_device_count()
