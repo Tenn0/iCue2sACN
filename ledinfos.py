@@ -14,6 +14,8 @@ while i < device_count:
     print(i)
     print(info_device)
     print(info_Led)
+    for led in info_Led.keys():
+        print(led.value)
     i += 1
     if i == device_count:
         break
