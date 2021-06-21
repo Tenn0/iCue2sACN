@@ -38,6 +38,8 @@ device_count = sdk.get_device_count() #setup Corsair devices config
 for device_index in range(device_count):
     device_name = sdk.get_device_info(device_index)
     exists = device_name.model in conf
-    universe = conf[device_name.model]
+    if exists == False:
+        print("Error!!!!!")
+    universe = conf[device_name.model] 
     setup_receiver(universe, device_index)
 
