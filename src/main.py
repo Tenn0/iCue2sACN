@@ -37,8 +37,14 @@ def load_config(config_path):
         return json.load(f)
 
 def save_config(config_path):
-    with open(config_path) as f:  #Config
-        json.dump(conf, f)
+    with open(config_path, "w", encoding="utf-8") as f:  #Config
+        json.dump(
+            conf,
+            f, 
+            ensure_ascii=False,
+            sort_keys=True,
+            indent=4
+        )
 
 receiver = sacn.sACNreceiver() #sACN receiver  
 receiver.start()
