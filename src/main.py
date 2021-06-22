@@ -34,7 +34,10 @@ def get_free_universe():
 
 def load_config(config_path):
     with open(config_path) as f:  #Config
-        return json.load(f)
+        try:
+            return json.load(f)
+        except json.JsonDecodeError:
+            return {}
 
 def save_config(config_path):
     with open(config_path, "w", encoding="utf-8") as f:  #Config
