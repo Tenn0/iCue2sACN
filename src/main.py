@@ -24,6 +24,15 @@ def setup_receiver(universe, device_index):
     receiver.register_listener("universe", callback, universe=universe)
     print(f"Created sacn receiver for {name} on universe {universe}, with {len(led_ids)} leds")
 
+def get_free_universe():
+    print(conf.values())
+    for i in conf.values():
+        if i == None:
+            print(i)
+            return 1
+        else: 
+            return len(conf.values()) + 1
+  
 
 receiver = sacn.sACNreceiver() #sACN receiver  
 receiver.start()
@@ -39,7 +48,10 @@ for device_index in range(device_count):
     device_name = sdk.get_device_info(device_index)
     exists = device_name.model in conf
     if exists == False:
-        print("Error!!!!!")
-    universe = conf[device_name.model] 
+        universe = get_free_universe()
+        conf.update({device_name.model: universe})   
+        print(f"conf= {conf}")
+    else:
+        universe = conf[device_name.model] 
     setup_receiver(universe, device_index)
 
