@@ -51,7 +51,7 @@ conf = load_config(JSON_PATH)
 device_count = sdk.get_device_count() #setup Corsair devices config
 for device_index in range(device_count):
     device_name = sdk.get_device_info(device_index)
-    if device_name.model in conf:
+    if device_name.model not in conf:
         universe = get_free_universe()
         conf.update({device_name.model: universe}) 
         print(f"conf= {conf}")
