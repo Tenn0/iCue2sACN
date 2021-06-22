@@ -36,7 +36,7 @@ def load_config(config_path):
     with open(config_path) as f:  #Config
         try:
             return json.load(f)
-        except json.JsonDecodeError:
+        except json.JSONDecodeError:
             return {}
 
 def save_config(config_path):
