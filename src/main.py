@@ -28,7 +28,7 @@ def setup_receiver(universe, device_index):
 def get_free_universe():
     return next(
         i
-        for i in range(128)
+        for i in range(1, 128)
         if i not in conf.values()
     )
 
