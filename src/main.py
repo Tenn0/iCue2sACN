@@ -38,9 +38,12 @@ def load_config(config_path):
             return json.load(f)
         except json.JSONDecodeError:
             return {}
+        except OSError:
+            open(config_path, "w")
+            
 
 def save_config(config_path):
-    with open(config_path, "w", encoding="utf-8") as f:  #Config
+    with open(config_path, "w", encoding="utf-8") as f:  # Save config
         json.dump(
             conf,
             f, 
