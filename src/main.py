@@ -1,14 +1,17 @@
 from os import times
 from cuesdk import CueSdk
+import json
 import sacn
 import time
 
-def setup_receiver(device_index):
+JSON_PATH = 'config.json'
+
+def setup_receiver(universe, device_index):
     name = sdk.get_device_info(device_index)
     led_info = sdk.get_led_positions_by_device_index(device_index)
     led_ids = tuple(led_info.keys())
     led_buffer = {led_id: (0, 0, 0) for led_id in led_ids}
-    universe = device_index + 1
+    universe = universe
 
     def callback(packet):
         data = packet.dmxData
@@ -22,15 +25,50 @@ def setup_receiver(device_index):
     receiver.register_listener("universe", callback, universe=universe)
     print(f"Created sacn receiver for {name} on universe {universe}, with {len(led_ids)} leds")
 
+def get_free_universe():
+    return next(
+        i
+        for i in range(1, 128)
+        if i not in conf.values()
+    )
 
-receiver = sacn.sACNreceiver()
+def load_config(config_path):
+    with open(config_path) as f:  #Config
+        try:
+            return json.load(f)
+        except json.JSONDecodeError:
+            return {}
+        except OSError:
+            open(config_path, "w")
+            
+
+def save_config(config_path):
+    with open(config_path, "w", encoding="utf-8") as f:  # Save config
+        json.dump(
+            conf,
+            f, 
+            ensure_ascii=False,
+            sort_keys=True,
+            indent=4
+        )
+
+receiver = sacn.sACNreceiver() #sACN receiver  
 receiver.start()
-sdk = CueSdk()
+sdk = CueSdk() #Corsair iCue SDK
 sdk.connect()
 sdk.set_layer_priority(128)
 
-device_count = sdk.get_device_count()
+conf = load_config(JSON_PATH)
 
+device_count = sdk.get_device_count() #setup Corsair devices config
 for device_index in range(device_count):
-    setup_receiver(device_index)
+    device_name = sdk.get_device_info(device_index)
+    if device_name.model not in conf:
+        universe = get_free_universe()
+        conf.update({device_name.model: universe}) 
+        print(f"conf= {conf}")
+    else:
+        universe = conf[device_name.model] 
+    save_config(JSON_PATH)
+    setup_receiver(universe, device_index)
 
