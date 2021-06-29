@@ -135,11 +135,12 @@ def subscribe_device_brightness_command_topics(device, base_topic):  #subscribe 
     
     client.message_callback_add(command_topic, callback)
 
-def publish_device_info(mqtt_base_topic, device_name, device_type, led_count):
+def publish_device_info(mqtt_base_topic, device_name, device_type, led_count, universe):
     data = {}
     data['name'] = str(device_name)
     data['type'] = str(device_type)
     data['led_count'] = str(led_count)
+    data['universe'] = str(universe)
     payload = json.dumps(data)
     device_info_topic = str(str(mqtt_base_topic)+"/"+str(device_name)+"/config")
     print(f"publishing device info for: {device_name}")
@@ -188,6 +189,6 @@ for device_index in range(device_count):
     subscribe_device_brightness_command_topics(device_name.model, mqtt_base_topic)
     subscribe_device_color_command_topics(device_name.model, mqtt_base_topic)
     subscribe_device_effect_command_topics(device_name.model, mqtt_base_topic)
-    publish_device_info(mqtt_base_topic, device_name.model, device_name.type, device_name.led_count )
+    publish_device_info(mqtt_base_topic, device_name.model, device_name.type, device_name.led_count, universe )
 
 client.loop_forever()
