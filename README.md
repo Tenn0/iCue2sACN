@@ -7,8 +7,7 @@ For Smart Home purposes im going to add a bit mqtt, to have a switch available t
 
 To use it, install via pip the packages cuesdk and sacn. Then run main.py
 
-In this branch im going to address the issue of iCUE spitting out the devices with changing device indecies, causing the programm to open them on different universes.
-Currently (22.6.2021) I added the ability to read from a json file, i gotta need to implement saving the devices to this file next.
+In this branch im going to work on adding mqtt, including: Set layer_priority (works), request exclusive control (works, needs a bit refinement), switch between sACN and iCUE as effect source (working on it), static lighting (working on it), auto discovery for Home Assistant (working on it). 
 
 
 
