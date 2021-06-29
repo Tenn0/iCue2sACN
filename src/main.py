@@ -135,6 +135,19 @@ def subscribe_device_brightness_command_topics(device, base_topic):  #subscribe 
     
     client.message_callback_add(command_topic, callback)
 
+def publish_device_info(mqtt_base_topic, device_name, device_type, led_count):
+    data = {}
+    data['name'] = str(device_name)
+    data['type'] = str(device_type)
+    data['led_count'] = str(led_count)
+    payload = json.dumps(data)
+    device_info_topic = str(str(mqtt_base_topic)+"/"+str(device_name)+"/config")
+    print(f"publishing device info for: {device_name}")
+    print(f"at topic: {device_info_topic}")
+    client.publish(device_info_topic, payload, qos=0, retain=True)
+
+
+
 
 conf = load_config(DEVICE_PATH)  #load device config
 mqtt_conf = load_config(MQTT_PATH) #load mqtt config
@@ -161,6 +174,7 @@ sdk.set_layer_priority(128)
 device_count = sdk.get_device_count() #setup Corsair devices config
 for device_index in range(device_count):
     device_name = sdk.get_device_info(device_index)
+    device_type = device_name.type
     if device_name.model not in conf:
         universe = get_free_universe()
         conf.update({device_name.model: universe}) 
@@ -169,10 +183,11 @@ for device_index in range(device_count):
         universe = conf[device_name.model] 
     save_config(DEVICE_PATH)
     setup_receiver(universe, device_index)
+
     subscribe_device_command_topics(device_name.model, mqtt_base_topic)
     subscribe_device_brightness_command_topics(device_name.model, mqtt_base_topic)
     subscribe_device_color_command_topics(device_name.model, mqtt_base_topic)
     subscribe_device_effect_command_topics(device_name.model, mqtt_base_topic)
-
+    publish_device_info(mqtt_base_topic, device_name.model, device_name.type, device_name.led_count )
 
 client.loop_forever()
