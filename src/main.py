@@ -36,7 +36,7 @@ def setup_receiver(universe, device_index):
             led_buffer[led_id] = (data[3*x], data[3*x+1], data[3*x+2])
 
         sdk.set_led_colors_buffer_by_device_index(device_index, led_buffer)
-        sdk.set_led_colors_flush_buffer()
+        sdk.set_led_colors_flush_buffer_async()
 
     receiver.register_listener("universe", callback, universe=universe)
     print(f"Created sacn receiver for {name} on universe {universe}, with {len(led_ids)} leds")
