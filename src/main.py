@@ -3,8 +3,23 @@ from cuesdk import CueSdk
 import json
 import sacn
 import time
+import paho.mqtt.client as mqtt
 
-JSON_PATH = 'config.json'
+
+DEVICE_PATH = 'config.json'
+MQTT_PATH = 'mqtt.json'
+
+def on_connect(client, userdata, flags, rc):
+      print("Connected with result code "+str(rc))
+      client.subscribe("hi/#")
+
+def on_message(client, userdata, msg):
+    payload = msg.payload.decode("utf-8")
+    print(msg.payload)
+    print(payload)
+    if str(payload) == "lol":
+        print("this works bruh!")
+        client.publish("hi/ho", payload="hello there!", qos=0, retain=False)
 
 def setup_receiver(universe, device_index):
     name = sdk.get_device_info(device_index)
@@ -36,21 +51,35 @@ def load_config(config_path):
     with open(config_path) as f:  #Config
         try:
             return json.load(f)
+        except OSError:
+            print("file not there, creating it")
+            open(config_path, "x")
         except json.JSONDecodeError:
             return {}
-        except OSError:
-            open(config_path, "w")
             
 
 def save_config(config_path):
     with open(config_path, "w", encoding="utf-8") as f:  # Save config
         json.dump(
-            conf,
+            conf,2
             f, 
             ensure_ascii=False,
             sort_keys=True,
             indent=4
         )
+
+conf = load_config(DEVICE_PATH)  #load device confiug
+mqtt_conf = load_config(MQTT_PATH) #load mqtt config
+mqtt_broker_ip = mqtt_conf['ip']  #setup mqtt
+mqtt_broker_port = mqtt_conf['port']
+mqtt_user = mqtt_conf['username']
+mqtt_pass = mqtt_conf['password']
+client = mqtt.Client()
+client.on_connect = on_connect
+client.on_message = on_message
+client.username_pw_set(mqtt_user, password=mqtt_pass)
+client.connect(mqtt_broker_ip, mqtt_broker_port, keepalive = 60, bind_address="" )
+
 
 receiver = sacn.sACNreceiver() #sACN receiver  
 receiver.start()
@@ -58,7 +87,7 @@ sdk = CueSdk() #Corsair iCue SDK
 sdk.connect()
 sdk.set_layer_priority(128)
 
-conf = load_config(JSON_PATH)
+
 
 device_count = sdk.get_device_count() #setup Corsair devices config
 for device_index in range(device_count):
@@ -69,6 +98,6 @@ for device_index in range(device_count):
         print(f"conf= {conf}")
     else:
         universe = conf[device_name.model] 
-    save_config(JSON_PATH)
+    save_config(DEVICE_PATH)
     setup_receiver(universe, device_index)
 
