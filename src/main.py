@@ -8,6 +8,8 @@ import os
 DEVICE_PATH = 'config.json'
 MQTT_PATH = 'mqtt.json'
 
+
+    
 def on_connect(client, userdata, flags, rc):
       print("Connected with result code "+str(rc))
       client.subscribe(mqtt_base_topic) #subscribe to base topic
@@ -41,6 +43,12 @@ def setup_receiver(universe, device_index):
     receiver.register_listener("universe", callback, universe=universe)
     print(f"Created sacn receiver for {name} on universe {universe}, with {len(led_ids)} leds")
 
+def remove_sacn_listener(universe):
+    universe = universe
+    receiver._callbacks[universe] = ""
+    sdk.request_control()
+    sdk.release_control()
+    
 def get_free_universe():
     return next(
         i
@@ -84,21 +92,33 @@ def subscribe_device_command_topics(device, base_topic):  #subscribe to device s
     
     client.message_callback_add(command_topic, callback)
 
-def subscribe_device_effect_command_topics(device, base_topic):  #subscribe to device state topic and publish on message dynically
+def subscribe_device_effect_command_topics(device, base_topic, universe):  #handle device effect command topic; supported are "None", "iCUE", "sACN"
     command_topic = str(str(base_topic) + "/" + str(device) + "/effect/command")
-    state_topic = str(str(base_topic) + "/" + str(device) + "//effect/state")
+    state_topic = str(str(base_topic) + "/" + str(device) + "/effect/state")
     print(f"subscribed to {command_topic}")
     print(f"puiblishing to {state_topic}")
     client.subscribe(command_topic)
     def callback(client, userdata, msg):
         payload = msg.payload.decode("utf-8")
-        if payload == "on":
-           print("on")
-           client.publish(state_topic, payload=payload, qos=0, retain=True) 
-        else:
-            print("off")
+        if payload == "iCUE":
+           universe = conf[device_name.model]
+           client.publish(state_topic, payload=payload, qos=0, retain=True)
+           remove_sacn_listener(universe)
+        if payload == "sACN":
+            universe = conf[device_name.model]
+            device_test_count = sdk.get_device_count()
+            for device_test_index in range(device_test_count):
+                device_test_name = sdk.get_device_info(device_test_index)
+                if device_test_name.model == device_name.model:
+                    device_hi = device_test_index
+                    setup_receiver(universe, device_hi)
+        if payload == "None":
+            print("removing")
             client.publish(state_topic, payload=payload, qos=0, retain=True)
-    
+            universe = conf[device_name.model]
+            remove_sacn_listener(universe)
+
+            
     client.message_callback_add(command_topic, callback)
 
 def subscribe_device_color_command_topics(device, base_topic):  #subscribe to device state topic and publish on message dynically
@@ -226,7 +246,7 @@ for device_index in range(device_count):
     subscribe_device_command_topics(device_name.model, light_topic)
     subscribe_device_brightness_command_topics(device_name.model, light_topic)
     subscribe_device_color_command_topics(device_name.model, light_topic)
-    subscribe_device_effect_command_topics(device_name.model, light_topic)
+    subscribe_device_effect_command_topics(device_name.model, light_topic, universe)
     publish_device_info(light_topic, device_name.model, device_name.type, device_name.led_count, universe )
 
 client.loop_forever()
