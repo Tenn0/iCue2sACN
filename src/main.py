@@ -112,11 +112,13 @@ def subscribe_device_effect_command_topics(device, base_topic, universe):  #hand
                 if device_test_name.model == device_name.model:
                     device_hi = device_test_index
                     setup_receiver(universe, device_hi)
+                    client.publish(state_topic, payload=payload, qos=0, retain=True)
         if payload == "None":
             print("removing")
             client.publish(state_topic, payload=payload, qos=0, retain=True)
             universe = conf[device_name.model]
             remove_sacn_listener(universe)
+            client.publish(state_topic, payload=payload, qos=0, retain=True)
 
             
     client.message_callback_add(command_topic, callback)
