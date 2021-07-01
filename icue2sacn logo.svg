@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="32"
+   height="32"
+   viewBox="0 0 8.4666667 8.4666667"
+   version="1.1"
+   id="svg5"
+   inkscape:version="1.1 (c68e22c387, 2021-05-23)"
+   sodipodi:docname="icue2sacn logo.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview7"
+     pagecolor="#505050"
+     bordercolor="#ffffff"
+     borderopacity="1"
+     inkscape:pageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="1"
+     inkscape:document-units="px"
+     showgrid="false"
+     inkscape:zoom="26.3125"
+     inkscape:cx="19.705463"
+     inkscape:cy="17.425178"
+     inkscape:window-width="1920"
+     inkscape:window-height="1027"
+     inkscape:window-x="1921"
+     inkscape:window-y="1016"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs2" />
+  <g
+     inkscape:label="Ebene 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <path
+       sodipodi:type="star"
+       style="fill:#de8787;fill-rule:evenodd"
+       id="path74"
+       inkscape:flatsided="false"
+       sodipodi:sides="5"
+       sodipodi:cx="-5.776722"
+       sodipodi:cy="20.63658"
+       sodipodi:r1="2.3673024"
+       sodipodi:r2="2.5798419"
+       sodipodi:arg1="-0.73997488"
+       sodipodi:arg2="2.7240102"
+       inkscape:rounded="0"
+       inkscape:randomized="0"
+       d="m -4.0285035,19.04038 -4.1063798,2.642459 4.4164665,0.123142 -3.7820691,-3.088834 1.247648,4.238362 1.7689326,-4.551464 -3.6453777,2.49631 4.8753296,0.275875 -3.5006153,-2.695558 1.2441868,4.721964 z"
+       transform="matrix(1.723166,0,0,1.7712443,14.037371,-32.575371)"
+       inkscape:transform-center-x="0.25352599"
+       inkscape:transform-center-y="0.14437635" />
+    <text
+       xml:space="preserve"
+       style="font-style:italic;font-weight:bold;font-size:6.35px;line-height:1.25;font-family:Sans;-inkscape-font-specification:'Sans, Bold Italic';font-variant-ligatures:none;stroke-width:0.264583"
+       x="-0.03016624"
+       y="7.8030086"
+       id="text6621"><tspan
+         sodipodi:role="line"
+         id="tspan6619"
+         style="font-style:italic;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:1.41111px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Bold Italic';font-variant-ligatures:none;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#4400aa;stroke-width:0.264583"
+         x="-0.03016624"
+         y="7.8030086">iCue2sACN</tspan></text>
+  </g>
+</svg>
