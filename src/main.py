@@ -4,12 +4,20 @@ import sacn
 import time
 import paho.mqtt.client as mqtt
 import os
+import sys
 
 DEVICE_PATH = 'config.json'
 MQTT_PATH = 'mqtt.json'
 
 
     
+def get_device_index_by_name(device_name):
+    device_count = sdk.get_device_count()
+    for device_index in range(device_count):
+        device_test_name = sdk.get_device_info(device_index)
+        if device_test_name.model == device_name:
+            return device_index
+
 def on_connect(client, userdata, flags, rc):
       print("Connected with result code "+str(rc))
       client.subscribe(mqtt_base_topic) #subscribe to base topic
@@ -23,6 +31,15 @@ def on_message(client, userdata, msg):
     if str(payload) == "lol":
         print("this works bruh!")
         client.publish("hi/ho", payload="hello there!", qos=0, retain=False)
+
+def set_all_device_leds(device_index, color):
+    led_info = sdk.get_led_positions_by_device_index(device_index)
+    led_ids = tuple(led_info.keys())
+    led_buffer = {led_id: (0, 0, 0) for led_id in led_ids}
+    for x, led_id in enumerate(led_ids):
+        led_buffer[led_id] = (color['r'], color ['g'], color['b'])
+        sdk.set_led_colors_buffer_by_device_index(device_index, led_buffer)
+        sdk.set_led_colors_flush_buffer()
 
 def setup_receiver(universe, device_index):
     name = sdk.get_device_info(device_index)
@@ -45,7 +62,9 @@ def setup_receiver(universe, device_index):
 
 def remove_sacn_listener(universe):
     universe = universe
+    print(f"removing listener for universe {universe}")
     receiver._callbacks[universe] = ""
+    sdk.release_control()
     sdk.request_control()
     sdk.release_control()
     
@@ -59,6 +78,30 @@ def get_free_universe():
 def load_config(config_path):
     if not os.path.isfile(config_path):  #Create the file if not present
         open(config_path, "w+")
+    if config_path == MQTT_PATH:
+         with open(config_path) as f:  #load the config file
+            try:
+                return json.load(f)
+            except json.JSONDecodeError:
+                data = {}
+                data['enable_MQTT'] = True
+                data['ip'] =""
+                data['port']= 1883
+                data['username'] =""
+                data['password'] =""
+                data['base_topic'] =""
+                with open(config_path, "w", encoding="utf-8") as f:  # Save config
+                    json.dump(
+                        data,
+                        f, 
+                        ensure_ascii=False,
+                        sort_keys=False,
+                        indent=4
+                        )
+                print(f"MQTT Config Created, please edit {MQTT_PATH} and restart this program!")
+                print("For Home Assistant Auto Discovery, set base_topic to homeassistant!")
+                sys.exit()
+                
     with open(config_path) as f:  #load the config file
         try:
             return json.load(f)
@@ -75,53 +118,70 @@ def save_config(config_path):
             indent=4
         )
 
-def subscribe_device_command_topics(device, base_topic):  #subscribe to device state topic and publish on message dynically
-    command_topic = str(str(base_topic) + "/" + str(device) + "/command")
-    state_topic = str(str(base_topic) + "/" + str(device) + "/state")
+def setup_device_command_topics(device_short, device, base_topic):  #subscribe to device state topic and publish on message dynically
+    command_topic = str(str(base_topic) + "/" + str(device_short) + "/command")
+    state_topic = str(str(base_topic) + "/" + str(device_short) + "/state")
     print(f"subscribed to {command_topic}")
-    print(f"puiblishing to {state_topic}")
+    print(f"publishing to {state_topic}")
     client.subscribe(command_topic)
     def callback(client, userdata, msg):
+        device_index = get_device_index_by_name(device)
+        universe = conf[device]
         payload = msg.payload.decode("utf-8")
-        if payload == "on":
-           print("on")
-           client.publish(state_topic, payload=payload, qos=0, retain=True) 
-        else:
-            print("off")
-            client.publish(state_topic, payload=payload, qos=0, retain=True)
+        payload = json.loads(payload)
+        state_payload = {}
+        if "effect" in payload:
+            if payload['effect'] == "sACN":
+                device_index = get_device_index_by_name(device)
+                setup_receiver(universe, device_index)
+                state_payload['effect'] = "sACN"
+            if payload['effect'] == "iCUE":
+                remove_sacn_listener(universe)
+                state_payload['effect'] = "iCUE"
+        if  not "effect" and "color" in payload:
+            universe = conf[device]
+            if not receiver._callbacks[universe] == "":
+                remove_sacn_listener(universe)
+            set_all_device_leds(device_index, payload['color'])
+            print(f"setting colors to {payload['color']}")
+            state_payload['color'] = payload['color']
+
+        if payload['state'] == "ON" and not "effect" in payload and "color" in payload:
+            if not receiver._callbacks[universe] == "":
+                remove_sacn_listener(universe)
+            set_all_device_leds(device_index, payload['color'])
+            state_payload['color'] = payload['color']
+            state_payload['brightness'] = "255" 
+            state_payload["state"] = "ON"
+        elif payload['state'] == "OFF":
+            if not receiver._callbacks[universe] == "":
+                remove_sacn_listener(universe)
+            color = {}
+            color['r'] = 0
+            color['g'] = 0
+            color['b'] = 0
+            set_all_device_leds(device_index, color)
+            state_payload = payload
+            state_payload['brightness'] = "0"
+        elif payload['state'] == "ON" and not "effect" in payload and not "color" in payload:
+            if not receiver._callbacks[universe] == "":
+                remove_sacn_listener(universe)
+            color = {}
+            color['r'] = 255
+            color['g'] = 255
+            color['b'] = 255
+            set_all_device_leds(device_index, color)
+            print(f"setting colors to {color}")
+            state_payload['state'] = "ON"
+            state_payload['color'] = color
+            state_payload['brightness'] = "255"
+
+            
+        state_payload = json.dumps(state_payload)
+        client.publish(state_topic, state_payload, qos=0, retain=True)
     
     client.message_callback_add(command_topic, callback)
 
-def subscribe_device_effect_command_topics(device, base_topic, universe):  #handle device effect command topic; supported are "None", "iCUE", "sACN"
-    command_topic = str(str(base_topic) + "/" + str(device) + "/effect/command")
-    state_topic = str(str(base_topic) + "/" + str(device) + "/effect/state")
-    print(f"subscribed to {command_topic}")
-    print(f"puiblishing to {state_topic}")
-    client.subscribe(command_topic)
-    def callback(client, userdata, msg):
-        payload = msg.payload.decode("utf-8")
-        if payload == "iCUE":
-           universe = conf[device_name.model]
-           client.publish(state_topic, payload=payload, qos=0, retain=True)
-           remove_sacn_listener(universe)
-        if payload == "sACN":
-            universe = conf[device_name.model]
-            device_test_count = sdk.get_device_count()
-            for device_test_index in range(device_test_count):
-                device_test_name = sdk.get_device_info(device_test_index)
-                if device_test_name.model == device_name.model:
-                    device_hi = device_test_index
-                    setup_receiver(universe, device_hi)
-                    client.publish(state_topic, payload=payload, qos=0, retain=True)
-        if payload == "None":
-            print("removing")
-            client.publish(state_topic, payload=payload, qos=0, retain=True)
-            universe = conf[device_name.model]
-            remove_sacn_listener(universe)
-            client.publish(state_topic, payload=payload, qos=0, retain=True)
-
-            
-    client.message_callback_add(command_topic, callback)
 
 
 
@@ -134,8 +194,7 @@ def publish_device_info(mqtt_base_topic, device_name, topic_name):
     data['command_topic'] = str(str(mqtt_base_topic) + "/" +str(topic_name)+ "/command")
     data['schema'] = "json"
     data['brightness'] = "true"
-    data['color_mode'] = "true"
-    data['supported_color_modes'] = ["rgb"]
+    data['rgb'] = "true"
     data['effect'] = "true"
     data['effect_list'] = ["None", "sACN", "iCUE"]
     data['device'] = device_data
@@ -145,7 +204,7 @@ def publish_device_info(mqtt_base_topic, device_name, topic_name):
     client.publish(device_info_topic, payload, qos=0, retain=True)
 
 def setup_use_exclusive_control(base_topic):
-    topic = str(str(base_topic) + "iCUE2sACN/iCUE_exclusive_control")
+    topic = str(str(base_topic) + "/iCUE_exclusive_control")
     command_topic = str(str(topic) + str("/command"))
     state_topic = str(topic + "/state") 
     config_topic = topic + "/config"
@@ -169,7 +228,7 @@ def setup_use_exclusive_control(base_topic):
     client.message_callback_add(command_topic, callback)
 
 def setup_layer_priority(base_topic):
-    topic = str(str(base_topic) + "/light/iCUE_device_layer")
+    topic = str(str(base_topic) + "/iCUE_device_layer")
     command_topic = str(str(topic) + str("/command"))
     config_topic = topic + "/config"
     state_topic = str(topic + "/state") 
@@ -211,23 +270,30 @@ def setup_layer_priority(base_topic):
 
 
 
-device_data = {}
-device_data['name'] = "iCUE2sACN"
-device_data['identifiers'] = "iCUE2sACN"
-device_data['manufacturer'] = "tenn0"
 conf = load_config(DEVICE_PATH)  #load device config
 mqtt_conf = load_config(MQTT_PATH) #load mqtt config
-mqtt_broker_ip = mqtt_conf['ip']  #setup mqtt
-mqtt_broker_port = mqtt_conf['port']
-mqtt_user = mqtt_conf['username']
-mqtt_pass = mqtt_conf['password']
-mqtt_base_topic = mqtt_conf['base_topic']
-light_topic = mqtt_base_topic + "/light/iCUE2sACN"
-client = mqtt.Client()
-client.on_connect = on_connect
-client.on_message = on_message
-client.username_pw_set(mqtt_user, password=mqtt_pass)
-client.connect(mqtt_broker_ip, mqtt_broker_port, keepalive = 60, bind_address="" )
+enable_mqtt = mqtt_conf['enable_MQTT']
+if enable_mqtt == True:
+    mqtt_broker_ip = mqtt_conf['ip']  #setup mqtt
+    mqtt_broker_port = mqtt_conf['port']
+    mqtt_user = mqtt_conf['username']
+    mqtt_pass = mqtt_conf['password']
+    mqtt_base_topic = mqtt_conf['base_topic']
+    light_topic = mqtt_base_topic + "/light/iCUE2sACN"
+    device_data = {}
+    device_data['name'] = "iCUE2sACN"
+    device_data['identifiers'] = "iCUE2sACN"
+    device_data['manufacturer'] = str(mqtt_user)
+    client = mqtt.Client()
+print(f"enable mqtt: {enable_mqtt}")
+print(type(enable_mqtt))
+if enable_mqtt == True:
+    client.on_connect = on_connect
+    client.on_message = on_message
+    client.username_pw_set(mqtt_user, password=mqtt_pass)
+    client.connect(mqtt_broker_ip, mqtt_broker_port, keepalive = 60, bind_address="" )
+    setup_use_exclusive_control(light_topic)
+    setup_layer_priority(light_topic)
 
 
 receiver = sacn.sACNreceiver() #sACN receiver  
@@ -236,8 +302,6 @@ sdk = CueSdk() #Corsair iCue SDK
 sdk.connect()
 sdk.set_layer_priority(128)
 
-setup_use_exclusive_control(light_topic)
-setup_layer_priority(light_topic)
 
 device_count = sdk.get_device_count() #setup Corsair devices config
 for device_index in range(device_count):
@@ -250,10 +314,10 @@ for device_index in range(device_count):
     else:
         universe = conf[device_name.model] 
     save_config(DEVICE_PATH)
-    setup_receiver(universe, device_index)
     device_topic_name_short = device_name.model.replace(" ", "_")
-    subscribe_device_command_topics(device_topic_name_short, light_topic)
-    subscribe_device_effect_command_topics(device_topic_name_short, light_topic, universe)
-    publish_device_info(light_topic, device_name.model, device_topic_name_short)
-
-client.loop_forever()
+    setup_receiver(universe, device_index)
+    if enable_mqtt == True:
+        setup_device_command_topics(device_topic_name_short, device_name.model,  light_topic)
+        publish_device_info(light_topic, device_name.model, device_topic_name_short)
+if enable_mqtt == True:
+    client.loop_forever()

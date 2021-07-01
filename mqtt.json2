@@ -1,0 +1,9 @@
+
+{
+    "ip": "192.168.2.34",
+    "port": 1883,
+    "username": "tenn0",
+    "password": "R4zerN4g4",
+    "base_topic": "homeassistant"
+
+}
