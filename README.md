@@ -7,7 +7,7 @@ For Smart Home purposes im going to add a bit mqtt, to have a switch available t
 
 To use it, install via pip the packages cuesdk and sacn. Then run main.py
 
-In this branch im going to work on adding mqtt, including: Set layer_priority (works), request exclusive control (works, needs a bit refinement), switch between sACN and iCUE as effect source (working on it), static lighting (working on it), auto discovery for Home Assistant (working on it). 
+In this branch im going to work on adding mqtt, including: Set layer_priority (works, needs a bit of love), request exclusive control (works), switch between sACN and iCUE as effect source (working on it), static lighting (working on it), auto discovery for Home Assistant (works). 
 
 
 
