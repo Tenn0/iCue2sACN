@@ -8,6 +8,13 @@
             "group": "test",
             "type": "shell",
             "command": "python ./src/main.py"
+
+        },
+        {
+            "label": "build windows exe",
+            "group": "build",
+            "type": "shell",
+            "command": "python "
         }
     ]
 }

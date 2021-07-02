@@ -1,3 +1,11 @@
 devices.json
+config.json
 mqtt.json
 mqtt_info
+asus
+aura
+build
+dist
+main.spec
+src/aura_tester.py
+.vscode/tasks.json
