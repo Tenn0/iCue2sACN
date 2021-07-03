@@ -1,0 +1,8 @@
+{
+    "enable_MQTT": false,
+    "ip": "",
+    "port": 1883,
+    "username": "",
+    "password": "",
+    "base_topic": ""
+}
