@@ -14,7 +14,7 @@
             "label": "build windows exe",
             "group": "build",
             "type": "shell",
-            "command": "python "
+            "command": "./build.bat"
         }
     ]
 }

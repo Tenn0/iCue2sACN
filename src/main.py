@@ -321,3 +321,9 @@ for device_index in range(device_count):
         publish_device_info(light_topic, device_name.model, device_topic_name_short)
 if enable_mqtt == True:
     client.loop_forever()
+
+
+
+
+
+  
