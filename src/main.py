@@ -1,5 +1,6 @@
 from cuesdk import CueSdk
 import json
+from cuesdk.enums import CorsairLedId
 import sacn
 import time
 import paho.mqtt.client as mqtt
@@ -130,30 +131,33 @@ def setup_device_command_topics(device_short, device, base_topic):  #subscribe t
         payload = msg.payload.decode("utf-8")
         payload = json.loads(payload)
         state_payload = {}
-        if "effect" in payload:
+        if payload["state"] == "ON" and "effect" in payload:    #effect changed
+            print("effect changed")
             if payload['effect'] == "sACN":
                 device_index = get_device_index_by_name(device)
-                setup_receiver(universe, device_index)
+                setup_receiver(universe, int(device_index))
                 state_payload['effect'] = "sACN"
             if payload['effect'] == "iCUE":
                 remove_sacn_listener(universe)
                 state_payload['effect'] = "iCUE"
-        if  not "effect" and "color" in payload:
+        elif  not "effect" and "color" in payload: #effect == none, color
+            print("color changed, no effect")
             universe = conf[device]
             if not receiver._callbacks[universe] == "":
                 remove_sacn_listener(universe)
             set_all_device_leds(device_index, payload['color'])
             print(f"setting colors to {payload['color']}")
             state_payload['color'] = payload['color']
-
-        if payload['state'] == "ON" and not "effect" in payload and "color" in payload:
+        elif payload['state'] == "ON" and not "effect" in payload and "color" in payload: # color changed
+            print("color changed")
             if not receiver._callbacks[universe] == "":
                 remove_sacn_listener(universe)
             set_all_device_leds(device_index, payload['color'])
             state_payload['color'] = payload['color']
             state_payload['brightness'] = "255" 
             state_payload["state"] = "ON"
-        elif payload['state'] == "OFF":
+        elif payload['state'] == "OFF": #state off
+            print("state off")
             if not receiver._callbacks[universe] == "":
                 remove_sacn_listener(universe)
             color = {}
@@ -163,7 +167,8 @@ def setup_device_command_topics(device_short, device, base_topic):  #subscribe t
             set_all_device_leds(device_index, color)
             state_payload = payload
             state_payload['brightness'] = "0"
-        elif payload['state'] == "ON" and not "effect" in payload and not "color" in payload:
+        elif payload['state'] == "ON" and not "effect" in payload and not "color" and "brightness" in payload: #state on
+            print("state on")
             if not receiver._callbacks[universe] == "":
                 remove_sacn_listener(universe)
             color = {}
@@ -175,6 +180,31 @@ def setup_device_command_topics(device_short, device, base_topic):  #subscribe t
             state_payload['state'] = "ON"
             state_payload['color'] = color
             state_payload['brightness'] = "255"
+        elif 'brightness' in payload: #brightness changed
+            print(f"brightness changed: {payload['brightness']}")
+            color = {}
+            led_info = sdk.get_led_positions_by_device_index(device_index)
+            keys_view = led_info.keys()
+            key_iterator = iter(keys_view)
+            led_one = next(key_iterator)
+            
+            #led_one = list(ledinfo[1])
+            print(led_one)
+            current_color = sdk.get_led_colors_by_device_index(device_index, [led_one])
+            print(current_color.keys())
+
+            current_color = list(current_color)
+            print(f"nwo current color is: {current_color[0]}")
+            print(type(current_color))
+            fac =  100 * (payload['brightness'] /255 )
+            color['r'] = current_color[1] * fac
+            color['g'] = current_color[2] * fac   
+            color['b'] = current_color[3] * fac
+            set_all_device_leds(device_index, color)
+            state_payload["state"] = "ON"
+            state_payload["brightness"] = payload["brightness"]
+            state_payload["color"] = color
+
 
             
         state_payload = json.dumps(state_payload)
