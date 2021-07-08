@@ -6,6 +6,7 @@ import time
 import paho.mqtt.client as mqtt
 import os
 import sys
+import math
 
 DEVICE_PATH = 'config.json'
 MQTT_PATH = 'mqtt.json'
@@ -184,26 +185,22 @@ def setup_device_command_topics(device_short, device, base_topic):  #subscribe t
             print(f"brightness changed: {payload['brightness']}")
             color = {}
             led_info = sdk.get_led_positions_by_device_index(device_index)
-            keys_view = led_info.keys()
-            key_iterator = iter(keys_view)
-            led_one = next(key_iterator)
-            
-            #led_one = list(ledinfo[1])
-            print(led_one)
-            current_color = sdk.get_led_colors_by_device_index(device_index, [led_one])
-            print(current_color.keys())
-
-            current_color = list(current_color)
-            print(f"nwo current color is: {current_color[0]}")
-            print(type(current_color))
-            fac =  100 * (payload['brightness'] /255 )
-            color['r'] = current_color[1] * fac
-            color['g'] = current_color[2] * fac   
-            color['b'] = current_color[3] * fac
+            current_color = sdk.get_led_colors_by_device_index(device_index, list(led_info))
+            current_color2 = tuple(current_color.values())
+            print(f"nwo current color is: {current_color2}")
+            current_color3 = current_color2[1]
+            print(type(current_color3))
+            print(current_color3)
+            fac = payload['brightness']
+            print(fac)
+            color['r'] = math.floor(current_color3[0] / fac)
+            color['g'] = math.floor(current_color3[1] / fac)   
+            color['b'] = math.floor(current_color3[2] / fac)
             set_all_device_leds(device_index, color)
             state_payload["state"] = "ON"
             state_payload["brightness"] = payload["brightness"]
             state_payload["color"] = color
+            print(state_payload["color"])
 
 
             
