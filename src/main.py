@@ -62,13 +62,6 @@ def setup_receiver(universe, device_index):
     receiver.register_listener("universe", callback, universe=universe)
     print(f"Created sacn receiver for {name} on universe {universe}, with {len(led_ids)} leds")
 
-def remove_sacn_listener(universe):
-    universe = universe
-    print(f"removing listener for universe {universe}")
-    receiver._callbacks[universe] = ""
-    sdk.release_control()
-    sdk.request_control()
-    sdk.release_control()
     
 def get_free_universe():
     return next(
@@ -139,20 +132,20 @@ def setup_device_command_topics(device_short, device, base_topic):  #subscribe t
                 setup_receiver(universe, int(device_index))
                 state_payload['effect'] = "sACN"
             if payload['effect'] == "iCUE":
-                remove_sacn_listener(universe)
+                receiver.remove_listener_from_universe(universe)
                 state_payload['effect'] = "iCUE"
         elif  not "effect" and "color" in payload: #effect == none, color
             print("color changed, no effect")
             universe = conf[device]
             if not receiver._callbacks[universe] == "":
-                remove_sacn_listener(universe)
+                receiver.remove_remove_listener_from_universe(universe)
             set_all_device_leds(device_index, payload['color'])
             print(f"setting colors to {payload['color']}")
             state_payload['color'] = payload['color']
         elif payload['state'] == "ON" and not "effect" in payload and "color" in payload: # color changed
             print("color changed")
             if not receiver._callbacks[universe] == "":
-                remove_sacn_listener(universe)
+                receiver.remove_listener_from_universe(universe)
             set_all_device_leds(device_index, payload['color'])
             state_payload['color'] = payload['color']
             state_payload['brightness'] = "255" 
@@ -160,7 +153,7 @@ def setup_device_command_topics(device_short, device, base_topic):  #subscribe t
         elif payload['state'] == "OFF": #state off
             print("state off")
             if not receiver._callbacks[universe] == "":
-                remove_sacn_listener(universe)
+                receiver.remove_listener_from_universe(universe)
             color = {}
             color['r'] = 0
             color['g'] = 0
