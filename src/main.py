@@ -10,9 +10,34 @@ import math
 
 DEVICE_PATH = 'config.json'
 MQTT_PATH = 'mqtt.json'
+COLOR_PATH = 'colors.json'
 
+def save_device_colors(device_name, color):
+    conf = json.dumps(str(device_name) + str(color)) 
+    with open(COLOR_PATH, "a", encoding="utf-8") as f:  # Save config
+        json.dump(
+            conf,
+            f, 
+            ensure_ascii=False,
+            sort_keys=True,
+            indent=4
+        )
+    print("saved colors")
+    return 1
 
-    
+def load_device_colors(device_name):
+    if not os.path.isfile(COLOR_PATH):  #Create the file if not present
+        open(COLOR_PATH, "w+")
+    with open(COLOR_PATH) as f:  #load the config file
+        try:
+            color = json.load(f)
+            print(type(color))
+            color = color.removesuffix(device_name)
+            print(f"current color for {device_name} is {color}")
+            return color
+        except json.JSONDecodeError:
+            print("JSON ERROR opening colors file")
+
 def get_device_index_by_name(device_name):
     device_count = sdk.get_device_count()
     for device_index in range(device_count):
@@ -137,23 +162,21 @@ def setup_device_command_topics(device_short, device, base_topic):  #subscribe t
         elif  not "effect" and "color" in payload: #effect == none, color
             print("color changed, no effect")
             universe = conf[device]
-            if not receiver._callbacks[universe] == "":
-                receiver.remove_remove_listener_from_universe(universe)
+            receiver.remove_listener_from_universe(universe)
             set_all_device_leds(device_index, payload['color'])
             print(f"setting colors to {payload['color']}")
             state_payload['color'] = payload['color']
         elif payload['state'] == "ON" and not "effect" in payload and "color" in payload: # color changed
-            print("color changed")
-            if not receiver._callbacks[universe] == "":
-                receiver.remove_listener_from_universe(universe)
+            print(f"color changed on {device}")
+            save_device_colors(device, payload["color"])
+            receiver.remove_listener_from_universe(universe)
             set_all_device_leds(device_index, payload['color'])
             state_payload['color'] = payload['color']
             state_payload['brightness'] = "255" 
             state_payload["state"] = "ON"
         elif payload['state'] == "OFF": #state off
             print("state off")
-            if not receiver._callbacks[universe] == "":
-                receiver.remove_listener_from_universe(universe)
+            receiver.remove_listener_from_universe(universe) 
             color = {}
             color['r'] = 0
             color['g'] = 0
@@ -161,10 +184,9 @@ def setup_device_command_topics(device_short, device, base_topic):  #subscribe t
             set_all_device_leds(device_index, color)
             state_payload = payload
             state_payload['brightness'] = "0"
-        elif payload['state'] == "ON" and not "effect" in payload and not "color" and "brightness" in payload: #state on
+        elif payload['state'] == "ON" and not "brightness" in payload: #state on
             print("state on")
-            if not receiver._callbacks[universe] == "":
-                remove_sacn_listener(universe)
+            receiver.remove_listener_from_universe(universe)
             color = {}
             color['r'] = 255
             color['g'] = 255
@@ -174,21 +196,16 @@ def setup_device_command_topics(device_short, device, base_topic):  #subscribe t
             state_payload['state'] = "ON"
             state_payload['color'] = color
             state_payload['brightness'] = "255"
-        elif 'brightness' in payload: #brightness changed
+        elif 'brightness' in payload and payload["state"] == "ON": #brightness changed
             print(f"brightness changed: {payload['brightness']}")
-            color = {}
-            led_info = sdk.get_led_positions_by_device_index(device_index)
-            current_color = sdk.get_led_colors_by_device_index(device_index, list(led_info))
-            current_color2 = tuple(current_color.values())
-            print(f"nwo current color is: {current_color2}")
-            current_color3 = current_color2[1]
-            print(type(current_color3))
-            print(current_color3)
+            current_color = load_device_colors(device)
+            print(f"current color is {current_color}")
             fac = payload['brightness']
             print(fac)
-            color['r'] = math.floor(current_color3[0] / fac)
-            color['g'] = math.floor(current_color3[1] / fac)   
-            color['b'] = math.floor(current_color3[2] / fac)
+            color = {}
+            color['r'] = math.floor(current_color[0] / fac)
+            color['g'] = math.floor(current_color[1] / fac)   
+            color['b'] = math.floor(current_color[2] / fac)
             set_all_device_leds(device_index, color)
             state_payload["state"] = "ON"
             state_payload["brightness"] = payload["brightness"]
