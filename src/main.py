@@ -12,8 +12,15 @@ DEVICE_PATH = 'config.json'
 MQTT_PATH = 'mqtt.json'
 COLOR_PATH = 'colors.json'
 
+def map(x, in_min, in_max, out_min, out_max):
+    return (x-in_min) * (out_max-out_min) / (in_max - in_min) + out_max
+
+def map_brightness_to_percentage(val):
+    x = map(val, 0,255,0,100)
+    return x
+
 def save_device_colors(device_name, color):
-    conf = json.dumps(str(device_name) + str(color)) 
+    conf = (str(device_name) + str(color)) 
     with open(COLOR_PATH, "a", encoding="utf-8") as f:  # Save config
         json.dump(
             conf,
