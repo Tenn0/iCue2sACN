@@ -13,15 +13,20 @@ MQTT_PATH = 'mqtt.json'
 COLOR_PATH = 'colors.json'
 
 def map(x, in_min, in_max, out_min, out_max):
-    return (x-in_min) * (out_max-out_min) / (in_max - in_min) + out_max
-
+    y =  (x-in_min) * (out_max-out_min) / (in_max - in_min) + out_min
+    print(f"mapped val: {y}")
+    return y
 def map_brightness_to_percentage(val):
-    x = map(val, 0,255,0,100)
+    x = map(val, 0,255,0,1)
+    if(x == 0):
+        x = 0.1
+    print(f"percentage of val: {x}")
     return x
 
 def save_device_colors(device_name, color):
-    conf = (str(device_name) + str(color)) 
-    with open(COLOR_PATH, "a", encoding="utf-8") as f:  # Save config
+    conf = {}
+    conf[device_name] = color 
+    with open(COLOR_PATH, "w", encoding="utf-8") as f:  # Save config
         json.dump(
             conf,
             f, 
@@ -39,7 +44,7 @@ def load_device_colors(device_name):
         try:
             color = json.load(f)
             print(type(color))
-            color = color.removesuffix(device_name)
+            color = color[device_name]
             print(f"current color for {device_name} is {color}")
             return color
         except json.JSONDecodeError:
@@ -207,12 +212,12 @@ def setup_device_command_topics(device_short, device, base_topic):  #subscribe t
             print(f"brightness changed: {payload['brightness']}")
             current_color = load_device_colors(device)
             print(f"current color is {current_color}")
-            fac = payload['brightness']
-            print(fac)
+            fac = map_brightness_to_percentage(payload['brightness'])
+            print(f"fac = {fac}")
             color = {}
-            color['r'] = math.floor(current_color[0] / fac)
-            color['g'] = math.floor(current_color[1] / fac)   
-            color['b'] = math.floor(current_color[2] / fac)
+            color['r'] = int(current_color["r"] * fac)
+            color['g'] = int(current_color["g"] * fac)   
+            color['b'] = int(current_color["b"] * fac)
             set_all_device_leds(device_index, color)
             state_payload["state"] = "ON"
             state_payload["brightness"] = payload["brightness"]
