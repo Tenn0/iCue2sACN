@@ -25,7 +25,10 @@ def map_brightness_to_percentage(val):
 
 def save_device_colors(device_name, color):
     conf = {}
-    conf[device_name] = color 
+    conf[device_name] = color
+    current_conf = load_config(COLOR_PATH)
+    conf = current_conf | conf
+    print(f"currently saved keys: {current_conf.keys()}")
     with open(COLOR_PATH, "w", encoding="utf-8") as f:  # Save config
         json.dump(
             conf,
