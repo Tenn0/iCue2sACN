@@ -92,7 +92,6 @@ def setup_receiver(universe, device_index):
 
     def callback(packet):
         data = packet.dmxData
-
         for x, led_id in enumerate(led_ids):
             led_buffer[led_id] = (data[3*x], data[3*x+1], data[3*x+2])
 
@@ -101,14 +100,18 @@ def setup_receiver(universe, device_index):
 
     receiver.register_listener("universe", callback, universe=universe)
     print(f"Created sacn receiver for {name} on universe {universe}, with {len(led_ids)} leds")
-
-    
+   
 def get_free_universe():
-    return next(
+
+    # generate a new universe
+    new_universe = next(
         i
         for i in range(1, 128)
-        if i not in conf.values()
+        if i not in universes
     )
+    
+    
+    return new_universe
 
 def load_config(config_path):
     if not os.path.isfile(config_path):  #Create the file if not present
@@ -153,22 +156,21 @@ def save_config(config_path):
             indent=4
         )
 
-def setup_device_command_topics(device_short, device, base_topic):  #subscribe to device state topic and publish on message dynically
+def setup_device_command_topics(device_short, device_index, base_topic, device_id):  #subscribe to device state topic and publish on message dynically
     command_topic = str(str(base_topic) + "/" + str(device_short) + "/command")
     state_topic = str(str(base_topic) + "/" + str(device_short) + "/state")
     print(f"subscribed to {command_topic}")
     print(f"publishing to {state_topic}")
     client.subscribe(command_topic)
     def callback(client, userdata, msg):
-        device_index = get_device_index_by_name(device)
-        universe = conf[device]
+        print(f"device_index: {device_index}")
+        universe = conf[device_id]['universe']
         payload = msg.payload.decode("utf-8")
         payload = json.loads(payload)
         state_payload = {}
         if payload["state"] == "ON" and "effect" in payload:    #effect changed
             print("effect changed")
             if payload['effect'] == "sACN":
-                device_index = get_device_index_by_name(device)
                 setup_receiver(universe, int(device_index))
                 state_payload['effect'] = "sACN"
             if payload['effect'] == "iCUE":
@@ -176,14 +178,14 @@ def setup_device_command_topics(device_short, device, base_topic):  #subscribe t
                 state_payload['effect'] = "iCUE"
         elif  not "effect" and "color" in payload: #effect == none, color
             print("color changed, no effect")
-            universe = conf[device]
+            universe = conf[device_id]['universe']
             receiver.remove_listener_from_universe(universe)
             set_all_device_leds(device_index, payload['color'])
             print(f"setting colors to {payload['color']}")
             state_payload['color'] = payload['color']
         elif payload['state'] == "ON" and not "effect" in payload and "color" in payload: # color changed
-            print(f"color changed on {device}")
-            save_device_colors(device, payload["color"])
+            print(f"color changed on {sdk.get_device_info(device_index)}")
+            save_device_colors(device_id, payload["color"])
             receiver.remove_listener_from_universe(universe)
             set_all_device_leds(device_index, payload['color'])
             state_payload['color'] = payload['color']
@@ -213,7 +215,7 @@ def setup_device_command_topics(device_short, device, base_topic):  #subscribe t
             state_payload['brightness'] = "255"
         elif 'brightness' in payload and payload["state"] == "ON": #brightness changed
             print(f"brightness changed: {payload['brightness']}")
-            current_color = load_device_colors(device)
+            current_color = load_device_colors(device_id)
             print(f"current color is {current_color}")
             fac = map_brightness_to_percentage(payload['brightness'])
             print(f"fac = {fac}")
@@ -323,6 +325,7 @@ def setup_layer_priority(base_topic):
 
 
 conf = load_config(DEVICE_PATH)  #load device config
+print(type(conf))
 mqtt_conf = load_config(MQTT_PATH) #load mqtt config
 enable_mqtt = mqtt_conf['enable_MQTT']
 if enable_mqtt == True:
@@ -359,21 +362,32 @@ device_count = sdk.get_device_count() #setup Corsair devices config
 for device_index in range(device_count):
     device_name = sdk.get_device_info(device_index)
     device_type = device_name.type
-    if device_name.model not in conf:
-        universe = get_free_universe()
-        conf.update({device_name.model: universe}) 
+    print(f"setting up device {device_name}")
+    if device_name.id not in conf:
+        if conf.keys == " ":
+            print("config empty, universer = 1")
+            universe = 1
+        else: 
+            universes = {v['universe'] for v in conf.values()}
+            universe = get_free_universe()
+        conf.update({device_name.id: {"model": device_name.model, "universe": universe}}) 
         print(f"conf= {conf}")
+        universes = {v['universe'] for v in conf.values()}
     else:
-        universe = conf[device_name.model] 
+        universe = conf[device_name.id] 
     save_config(DEVICE_PATH)
     device_topic_name_short = device_name.model.replace(" ", "_")
-    setup_receiver(universe, device_index)
+    device_unique_topic = device_topic_name_short + device_name.id
+    device_unique_name = device_name.model + device_name.id
+    if enable_mqtt == False:
+      
+      setup_receiver(universe, device_index)
     if enable_mqtt == True:
-        setup_device_command_topics(device_topic_name_short, device_name.model,  light_topic)
-        publish_device_info(light_topic, device_name.model, device_topic_name_short)
+        print(f"readying device: {device_index}")
+        setup_device_command_topics(device_unique_topic, device_index,  light_topic, device_name.id)
+        publish_device_info(light_topic, device_name.model, device_unique_topic)
 if enable_mqtt == True:
     client.loop_forever()
-
 
 
 
